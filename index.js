@@ -4,7 +4,8 @@ const { program } = require('commander')
 
 const package = require('./package.json')
 const Atlantis = require('./lib/atlantis.js')
-const { sleep } = require('./lib/utils.js')
+const { sleep, prompt } = require('./lib/utils.js')
+
 
 const atlantis = new Atlantis(process.env.RSA_PUBLIC_KEY)
 
@@ -22,7 +23,9 @@ program
 program
   .description('Expand encrypted folder')
   .argument('<src>', 'Path to encrypted folder')
-  .argument('<key>', 'Path to private key')
-  .action((src, key) => atlantis.uncompress(src, key))
+  .action(async src => {
+    const key = await prompt('Please enter your private key: ')
+    atlantis.uncompress(src, key)
+  })
 
 program.parse()
