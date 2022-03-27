@@ -61,6 +61,5 @@ Ctrl+C to exit and select ```y``` to compress and encrypt again and save to a si
 Do you want to encrypt again? (Y/n) y
 ```
 
-
-
-
+## Disclaimer
+Please understand that we are not responsible for any damage caused by the use of this ```Atlantis``` for any reason whatsoever.
