@@ -1,17 +1,16 @@
-const { program } = require('commander')
+import { program } from 'commander'
 
-const package = require('./package.json')
-const Atlantis = require('./lib/atlantis.js')
-const { ALGORITHM } = require('./lib/crypt.js')
-const prompt = require('./lib/prompt.js')
+import { atlantis } from './lib/atlantis'
+import { ALGORITHM } from './lib/crypt'
+import { prompt } from './lib/prompt'
 
+import _package from './package.json'
 
-const atlantis = new Atlantis()
 
 program
   .name('atlantis')
   .description('Encrypted folders that appear only at runtime')
-  .version(package.version)
+  .version(_package.version)
 
 program
   .command('create')
@@ -20,7 +19,7 @@ program
   .action(async () => {
     const { algorithm } = program.opts()
     const src = await prompt.secret('Please enter your folder to encrypt: ')
-    const key = await Atlantis.key(algorithm, true)
+    const key = await atlantis.key(algorithm, true)
     atlantis.compress(src, algorithm, key)
   })
 
@@ -30,7 +29,7 @@ program
   .action(async () => {
     const { algorithm } = program.opts()
     const src = await prompt.secret('Please enter your folder to decrypt: ')
-    const key = await Atlantis.key(algorithm)
+    const key = await atlantis.key(algorithm)
     atlantis.uncompress(src, algorithm, key)
   })
 

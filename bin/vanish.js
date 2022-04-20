@@ -1,4 +1,2 @@
-const Atlantis = require('../lib/atlantis.js')
-
-const atlantis = new Atlantis()
+const { atlantis } = require('../dist/lib/atlantis.js')
 atlantis.vanish(...process.argv.slice(2))

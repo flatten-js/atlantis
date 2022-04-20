@@ -1,6 +1,8 @@
-exports.sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
-exports._enum = l => l.reduce((acc, cur) => ({ ...acc, [cur]: cur }), {})
-exports.run = (cb, ms, validator) => {
+export const sleep = (ms: number): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+export const run = (cb: () => any, ms: number, validator?: (data: any) => any): Promise<any> => {
   return new Promise(resolve => {
     setTimeout(async function run() {
       try {

@@ -1,37 +1,37 @@
 require('dotenv').config()
 
-const fs = require('fs')
-const path = require('path')
-const { randomUUID } = require('crypto')
-const { spawn } = require('child_process')
+import fs from 'fs'
+import path from 'path'
+import { randomUUID } from 'crypto'
+import { spawn, SpawnOptions } from 'child_process'
 
-const archiver = require('archiver')
-const unzipper = require('unzipper')
-const chokidar = require("chokidar")
+import archiver from 'archiver'
+import unzipper from 'unzipper'
+import chokidar from 'chokidar'
 
-const { ALGORITHM, encrypt, decrypt } = require('./crypt.js')
-const prompt = require('./prompt.js')
-const { sleep, run } = require('./utils.js')
+import { ALGORITHM, encrypt, decrypt } from './crypt'
+import { prompt } from './prompt'
+import { sleep, run } from './utils'
 
 
 class Atlantis {
   constructor() {}
 
-  static async key(algorithm, is_compress) {
+  async key(algorithm: ALGORITHM, is_compress?: boolean): Promise<string> {
     switch (algorithm) {
       case ALGORITHM.RSA:
-        if (is_compress) return process.env.RSA_PUBLIC_KEY
+        if (is_compress) return process.env.RSA_PUBLIC_KEY || ''
         return await prompt.secret('Please enter your private key: ')
 
       case ALGORITHM.AES:
         return await prompt.secret('Please enter your common key: ')
 
       default:
-        return null
+        return ''
     }
   }
 
-  async compress(src, algorithm, key, to = '../') {
+  async compress(src: string, algorithm: ALGORITHM, key: string, to: string = '../'): Promise<void> {
     try {
       const stat = fs.statSync(src)
       if (!stat.isDirectory()) throw { code: 'ENOTDIR' }
@@ -47,7 +47,7 @@ class Atlantis {
     await archive.finalize()
   }
 
-  async vanish(dest, algorithm, key, is_compress) {
+  async vanish(dest: string, algorithm: ALGORITHM, key: string, is_compress: string): Promise<void> {
     const target = fs.readdirSync(dest).find(f => fs.statSync(path.join(dest, f)).isDirectory())
     if (target && Number(is_compress)) {
       const src = path.join(dest, target)
@@ -59,7 +59,7 @@ class Atlantis {
     }
   }
 
-  async _on_update_atlantis(dest) {
+  private async on_update_atlantis(dest: string): Promise<void> {
     let target = await run(() => fs.readdirSync(dest)[0], 100, v => v)
     fs.copyFileSync('./assets/README.txt', path.join(dest, 'README.txt'))
     const master = [target, 'README.txt'].map(f => fs.statSync(path.join(dest, f)).ino)
@@ -76,13 +76,13 @@ class Atlantis {
     })
   }
 
-  _on_exit_signal(dest, algorithm, key) {
+  private async on_exit_signal(dest: string, algorithm: ALGORITHM, key: string): Promise<void> {
     let is_compress = true
-    let timer = null
+    let timer: NodeJS.Timer|null = null
 
     if (process.env.TIMEOUT) {
-      const timeout = process.env.TIMEOUT * 1000
-      timer = setTimeout(async function run() {
+      const timeout = Number(process.env.TIMEOUT) * 1000
+      timer = setTimeout(async function run(): Promise<NodeJS.Timer> {
         const answer = await prompt.call('Press any key to cancel the timeout', 60)
         if (answer) return timer = setTimeout(run, timeout)
         throw new Error('Call uncaughtException to connect to subsequent processing')
@@ -90,7 +90,7 @@ class Atlantis {
     }
 
     process.on('SIGINT', async () => {
-      clearTimeout(timer)
+      if (timer) clearTimeout(timer)
       is_compress = await prompt.confirm('Do you want to encrypt again?')
       throw new Error('Call uncaughtException to connect to subsequent processing')
     })
@@ -102,9 +102,9 @@ class Atlantis {
       'SIGUSR2', 'SIGTERM'
     ].forEach(signal => {
       process.on(signal, async _ => {
-        if (ALGORITHM.RSA == algorithm) key = await Atlantis.key(algorithm, true)
-        const args = [dest, algorithm, key, Number(is_compress)]
-        const options = { detached: true, stdio: 'ignore' }
+        if (ALGORITHM.RSA == algorithm) key = await this.key(algorithm, true)
+        const args = [dest, algorithm, key, String(+is_compress)]
+        const options: SpawnOptions = { detached: true, stdio: 'ignore' }
         const subprocess = spawn('node', ['./bin/vanish.js', ...args], options)
         subprocess.unref()
         process.exit(0)
@@ -112,7 +112,7 @@ class Atlantis {
     })
   }
 
-  async uncompress(src, algorithm, key) {
+  async uncompress(src: string, algorithm: ALGORITHM, key: string): Promise<void> {
     try {
       var stat = fs.statSync(src)
       if (!stat.isFile()) throw { code: 'EISDIR' }
@@ -125,11 +125,11 @@ class Atlantis {
     const output = unzipper.Extract({ path: dest })
 
     input.pipe(decrypt(algorithm, key, stat.size)).pipe(output)
-    this._on_update_atlantis(dest)
+    this.on_update_atlantis(dest)
 
-    this._on_exit_signal(dest, algorithm, key)
+    this.on_exit_signal(dest, algorithm, key)
     while (1) await sleep(1000)
   }
 }
 
-module.exports = Atlantis
+export const atlantis = new Atlantis()
