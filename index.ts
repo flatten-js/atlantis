@@ -1,4 +1,4 @@
-import { program } from 'commander'
+import { program, Option } from 'commander'
 
 import { atlantis } from './lib/atlantis'
 import { ALGORITHM } from './lib/crypt'
@@ -12,10 +12,15 @@ program
   .description('Encrypted folders that appear only at runtime')
   .version(_package.version)
 
+const algorithm_option = (name: string): Option => {
+  const args: [string, string] = ['-alg, --algorithm <algorithm>', `Algorithm to ${name}`]
+  return new Option(...args).choices(Object.keys(ALGORITHM)).default(ALGORITHM.AES)
+}
+
 program
   .command('create')
   .description('Create encrypted folder')
-  .option('-alg, --algorithm <algorithm>', 'Algorithm to encrypt', ALGORITHM.AES)
+  .addOption(algorithm_option('encrypt'))
   .action(async () => {
     const { algorithm } = program.opts()
     const src = await prompt.secret('Please enter your folder to encrypt: ')
@@ -25,7 +30,7 @@ program
 
 program
   .description('Expand encrypted folder')
-  .option('-alg, --algorithm <algorithm>', 'Algorithm to decrypt', ALGORITHM.AES)
+  .addOption(algorithm_option('decrypt'))
   .action(async () => {
     const { algorithm } = program.opts()
     const src = await prompt.secret('Please enter your folder to decrypt: ')
