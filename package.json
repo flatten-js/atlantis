@@ -2,8 +2,8 @@
   "version": "0.8.0",
   "scripts": {
     "build": "tsc",
-    "dev": "start cmd /c ts-node index.ts",
-    "start": "start cmd /c node dist/index.js"
+    "dev": "start bin\\window.bat ts-node index.ts",
+    "start": "start bin\\window.bat node dist/index.js"
   },
   "dependencies": {
     "archiver": "^5.3.0",
