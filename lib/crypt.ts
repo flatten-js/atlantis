@@ -7,7 +7,7 @@ import xor from 'buffer-xor'
 
 
 class Crypt extends Transform {
-  protected key: Buffer
+  protected readonly key: Buffer
   private chunk: Buffer
 
   constructor(key: string, private chunk_size: number) {
@@ -24,7 +24,7 @@ class Crypt extends Transform {
     return chunk
   }
 
-  _transform(chunk: Buffer, _encoding: string, done: () => void) {
+  override _transform(chunk: Buffer, _encoding: string, done: () => void) {
     const { chunk_size } = this
     chunk = this.chunk = Buffer.concat([this.chunk, chunk])
 
@@ -40,7 +40,7 @@ class Crypt extends Transform {
     done()
   }
 
-  _final(done: () => void) {
+  override _final(done: () => void) {
     if (this.chunk.length) {
       const crypted = this.crypt(this.chunk)
       this.push(crypted)
@@ -51,7 +51,7 @@ class Crypt extends Transform {
 }
 
 class Decrypt extends Crypt {
-  private progress: SingleBar
+  private readonly progress: SingleBar
   private total: number
 
   constructor(key: string, chunk_size: number, total: number) {
@@ -65,7 +65,7 @@ class Decrypt extends Crypt {
     this.progress.update(this.total += chunk_size)
   }
 
-  _final(done: () => void) {
+  override _final(done: () => void) {
     super._final(done)
     this.progress.stop()
     this.total = 0
@@ -73,10 +73,10 @@ class Decrypt extends Crypt {
 }
 
 class RSA {
-  static ENCRYPT_LENGTH = 214
-  static DECRYPT_LENGTH = 256
+  static readonly ENCRYPT_LENGTH = 214
+  static readonly DECRYPT_LENGTH = 256
 
-  constructor(private key: string) {}
+  constructor(private readonly key: string) {}
 
   private get Encrypt() {
     return class extends Crypt {
@@ -84,7 +84,7 @@ class RSA {
         super(key, chunk_size)
       }
 
-      protected crypt(chunk: Buffer): Buffer {
+      protected override crypt(chunk: Buffer): Buffer {
         return crypto.publicEncrypt(this.key, chunk)
       }
     }
@@ -100,7 +100,7 @@ class RSA {
         super(key, chunk_size, total)
       }
 
-      protected read_key(key: string): Buffer {
+      protected override read_key(key: string): Buffer {
         try {
           return fs.readFileSync(key)
         } catch (e) {
@@ -108,7 +108,7 @@ class RSA {
         }
       }
 
-      protected crypt(chunk: Buffer): Buffer {
+      protected override crypt(chunk: Buffer): Buffer {
         super._update(chunk.length)
         return crypto.privateDecrypt(this.key, chunk)
       }
@@ -121,13 +121,13 @@ class RSA {
 }
 
 class AES {
-  static ALGORITHM = 'aes-256-cbc'
-  static ENCRYPT_LENGTH = 256
-  static DECRYPT_LENGTH = 256
-  static PADDING_LENGTH = 1
-  static IV_LENGTH = 16
+  static readonly ALGORITHM = 'aes-256-cbc'
+  static readonly ENCRYPT_LENGTH = 256
+  static readonly DECRYPT_LENGTH = 256
+  static readonly PADDING_LENGTH = 1
+  static readonly IV_LENGTH = 16
 
-  constructor(private key: string) {}
+  constructor(private readonly key: string) {}
 
   private get Encrypt() {
     return class extends Crypt {
@@ -138,7 +138,7 @@ class AES {
         this.block = Buffer.from([])
       }
 
-      protected read_key(key: string): Buffer {
+      protected override read_key(key: string): Buffer {
         try {
           return fs.readFileSync(key)
         } catch (e) {
@@ -146,7 +146,7 @@ class AES {
         }
       }
 
-      protected crypt(chunk: Buffer): Buffer {
+      protected override crypt(chunk: Buffer): Buffer {
         const iv = this.block.length ? xor(this.block, chunk).slice(0, AES.IV_LENGTH) : crypto.randomBytes(16)
         const cipher = crypto.createCipheriv(AES.ALGORITHM, this.key, iv)
         this.block = Buffer.concat([cipher.update(chunk), cipher.final()])
@@ -165,7 +165,7 @@ class AES {
         super(key, chunk_size, total)
       }
 
-      protected read_key(key: string): Buffer {
+      protected override read_key(key: string): Buffer {
         try {
           return fs.readFileSync(key)
         } catch (e) {
@@ -173,7 +173,7 @@ class AES {
         }
       }
 
-      protected crypt(chunk: Buffer): Buffer {
+      protected override crypt(chunk: Buffer): Buffer {
         super._update(chunk.length)
         const iv = chunk.slice(0, AES.IV_LENGTH)
         const decipher = crypto.createDecipheriv(AES.ALGORITHM, this.key, iv)

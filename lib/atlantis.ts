@@ -60,7 +60,7 @@ class Atlantis {
   }
 
   private async on_update_atlantis(dest: string): Promise<void> {
-    let target = await run(() => fs.readdirSync(dest)[0], 100, v => v)
+    let target = await run<string>(() => fs.readdirSync(dest)[0], 100, v => v)
     fs.copyFileSync('./assets/README.txt', path.join(dest, 'README.txt'))
     const master = [target, 'README.txt'].map(f => fs.statSync(path.join(dest, f)).ino)
 
@@ -70,7 +70,7 @@ class Atlantis {
         watcher.on(name, async (p, stat) => {
           if (master[0] == stat.ino) target = path.basename(p)
           if (master.includes(stat.ino)) return
-          await run(() => fs.renameSync(p, path.join(dest, target, path.basename(p))), 10)
+          await run<void>(() => fs.renameSync(p, path.join(dest, target, path.basename(p))), 10)
         })
       })
     })
@@ -123,10 +123,8 @@ class Atlantis {
     const dest = path.join(path.dirname(src), 'atlantis')
     const input = fs.createReadStream(src)
     const output = unzipper.Extract({ path: dest })
-
     input.pipe(decrypt(algorithm, key, stat.size)).pipe(output)
     this.on_update_atlantis(dest)
-
     this.on_exit_signal(dest, algorithm, key)
     while (1) await sleep(1000)
   }

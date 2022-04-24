@@ -2,7 +2,7 @@ export const sleep = (ms: number): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-export const run = (cb: () => any, ms: number, validator?: (data: any) => any): Promise<any> => {
+export const run = <T>(cb: () => T, ms: number, validator?: (data: T) => any): Promise<T> => {
   return new Promise(resolve => {
     setTimeout(async function run() {
       try {
