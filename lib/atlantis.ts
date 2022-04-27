@@ -15,7 +15,11 @@ import { sleep, run } from './utils'
 
 
 class Atlantis {
-  constructor() {}
+  private target: string
+
+  constructor() {
+    this.target = ''
+  }
 
   async key(algorithm: ALGORITHM, is_compress?: boolean): Promise<string> {
     switch (algorithm) {
@@ -47,30 +51,31 @@ class Atlantis {
     await archive.finalize()
   }
 
-  async vanish(dest: string, algorithm: ALGORITHM, key: string, is_compress: string): Promise<void> {
-    const target = fs.readdirSync(dest).find(f => fs.statSync(path.join(dest, f)).isDirectory())
-    if (target && Number(is_compress)) {
+  async vanish(dest: string, target: string, algorithm: ALGORITHM, key: string, is_compress: string): Promise<void> {
+    try {
+      if (!+is_compress) return
       const src = path.join(dest, target)
       await this.compress(src, algorithm, key, '../../')
-    }
-    while (fs.existsSync(dest)) {
-      fs.rmSync(dest, { recursive: true, force: true })
-      await sleep(1000)
+    } finally {
+      while (fs.existsSync(dest)) {
+        fs.rmSync(dest, { recursive: true, force: true })
+        await sleep(1000)
+      }
     }
   }
 
   private async on_update_atlantis(dest: string): Promise<void> {
-    let target = await run<string>(() => fs.readdirSync(dest)[0], 100, v => v)
+    this.target = await run<string>(() => fs.readdirSync(dest)[0], 100, v => v)
     fs.copyFileSync('./assets/README.txt', path.join(dest, 'README.txt'))
-    const master = [target, 'README.txt'].map(f => fs.statSync(path.join(dest, f)).ino)
+    const master = [this.target, 'README.txt'].map(f => fs.statSync(path.join(dest, f)).ino)
 
     const watcher = chokidar.watch(dest, { depth: 0 })
     watcher.on('ready', () => {
       ;['add', 'addDir'].forEach(name => {
         watcher.on(name, async (p, stat) => {
-          if (master[0] == stat.ino) target = path.basename(p)
+          if (master[0] == stat.ino) this.target = path.basename(p)
           if (master.includes(stat.ino)) return
-          await run<void>(() => fs.renameSync(p, path.join(dest, target, path.basename(p))), 10)
+          await run<void>(() => fs.renameSync(p, path.join(dest, this.target, path.basename(p))), 10)
         })
       })
     })
@@ -103,7 +108,7 @@ class Atlantis {
     ].forEach(signal => {
       process.on(signal, async _ => {
         if (ALGORITHM.RSA == algorithm) key = await this.key(algorithm, true)
-        const args = [dest, algorithm, key, String(+is_compress)]
+        const args = [dest, this.target, algorithm, key, String(+is_compress)]
         const options: SpawnOptions = { detached: true, stdio: 'ignore' }
         const subprocess = spawn('node', ['./bin/vanish.js', ...args], options)
         subprocess.unref()
@@ -130,4 +135,4 @@ class Atlantis {
   }
 }
 
-export const atlantis = new Atlantis()
+export { Atlantis }

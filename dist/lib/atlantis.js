@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.atlantis = void 0;
+exports.Atlantis = void 0;
 require('dotenv').config();
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
@@ -16,7 +16,9 @@ const crypt_1 = require("./crypt");
 const prompt_1 = require("./prompt");
 const utils_1 = require("./utils");
 class Atlantis {
-    constructor() { }
+    constructor() {
+        this.target = '';
+    }
     async key(algorithm, is_compress) {
         switch (algorithm) {
             case crypt_1.ALGORITHM.RSA:
@@ -45,31 +47,34 @@ class Atlantis {
         archive.directory(src, path_1.default.basename(src));
         await archive.finalize();
     }
-    async vanish(dest, algorithm, key, is_compress) {
-        const target = fs_1.default.readdirSync(dest).find(f => fs_1.default.statSync(path_1.default.join(dest, f)).isDirectory());
-        if (target && Number(is_compress)) {
+    async vanish(dest, target, algorithm, key, is_compress) {
+        try {
+            if (!+is_compress)
+                return;
             const src = path_1.default.join(dest, target);
             await this.compress(src, algorithm, key, '../../');
         }
-        while (fs_1.default.existsSync(dest)) {
-            fs_1.default.rmSync(dest, { recursive: true, force: true });
-            await (0, utils_1.sleep)(1000);
+        finally {
+            while (fs_1.default.existsSync(dest)) {
+                fs_1.default.rmSync(dest, { recursive: true, force: true });
+                await (0, utils_1.sleep)(1000);
+            }
         }
     }
     async on_update_atlantis(dest) {
-        let target = await (0, utils_1.run)(() => fs_1.default.readdirSync(dest)[0], 100, v => v);
+        this.target = await (0, utils_1.run)(() => fs_1.default.readdirSync(dest)[0], 100, v => v);
         fs_1.default.copyFileSync('./assets/README.txt', path_1.default.join(dest, 'README.txt'));
-        const master = [target, 'README.txt'].map(f => fs_1.default.statSync(path_1.default.join(dest, f)).ino);
+        const master = [this.target, 'README.txt'].map(f => fs_1.default.statSync(path_1.default.join(dest, f)).ino);
         const watcher = chokidar_1.default.watch(dest, { depth: 0 });
         watcher.on('ready', () => {
             ;
             ['add', 'addDir'].forEach(name => {
                 watcher.on(name, async (p, stat) => {
                     if (master[0] == stat.ino)
-                        target = path_1.default.basename(p);
+                        this.target = path_1.default.basename(p);
                     if (master.includes(stat.ino))
                         return;
-                    await (0, utils_1.run)(() => fs_1.default.renameSync(p, path_1.default.join(dest, target, path_1.default.basename(p))), 10);
+                    await (0, utils_1.run)(() => fs_1.default.renameSync(p, path_1.default.join(dest, this.target, path_1.default.basename(p))), 10);
                 });
             });
         });
@@ -101,7 +106,7 @@ class Atlantis {
             process.on(signal, async (_) => {
                 if (crypt_1.ALGORITHM.RSA == algorithm)
                     key = await this.key(algorithm, true);
-                const args = [dest, algorithm, key, String(+is_compress)];
+                const args = [dest, this.target, algorithm, key, String(+is_compress)];
                 const options = { detached: true, stdio: 'ignore' };
                 const subprocess = (0, child_process_1.spawn)('node', ['./bin/vanish.js', ...args], options);
                 subprocess.unref();
@@ -128,4 +133,4 @@ class Atlantis {
             await (0, utils_1.sleep)(1000);
     }
 }
-exports.atlantis = new Atlantis();
+exports.Atlantis = Atlantis;

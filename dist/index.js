@@ -8,6 +8,7 @@ const atlantis_1 = require("./lib/atlantis");
 const crypt_1 = require("./lib/crypt");
 const prompt_1 = require("./lib/prompt");
 const package_json_1 = __importDefault(require("./package.json"));
+const atlantis = new atlantis_1.Atlantis();
 commander_1.program
     .name('atlantis')
     .description('Encrypted folders that appear only at runtime')
@@ -23,8 +24,8 @@ commander_1.program
     .action(async () => {
     const { algorithm } = commander_1.program.opts();
     const src = await prompt_1.prompt.secret('Please enter your folder to encrypt: ');
-    const key = await atlantis_1.atlantis.key(algorithm, true);
-    atlantis_1.atlantis.compress(src, algorithm, key);
+    const key = await atlantis.key(algorithm, true);
+    atlantis.compress(src, algorithm, key);
 });
 commander_1.program
     .description('Expand encrypted folder')
@@ -32,7 +33,7 @@ commander_1.program
     .action(async () => {
     const { algorithm } = commander_1.program.opts();
     const src = await prompt_1.prompt.secret('Please enter your folder to decrypt: ');
-    const key = await atlantis_1.atlantis.key(algorithm);
-    atlantis_1.atlantis.uncompress(src, algorithm, key);
+    const key = await atlantis.key(algorithm);
+    atlantis.uncompress(src, algorithm, key);
 });
 commander_1.program.parse(process.argv);

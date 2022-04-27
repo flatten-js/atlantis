@@ -1,11 +1,13 @@
 import { program, Option } from 'commander'
 
-import { atlantis } from './lib/atlantis'
+import { Atlantis } from './lib/atlantis'
 import { ALGORITHM } from './lib/crypt'
 import { prompt } from './lib/prompt'
 
 import pkg from './package.json'
 
+
+const atlantis = new Atlantis()
 
 program
   .name('atlantis')
