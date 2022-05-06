@@ -1,6 +1,7 @@
 {
     "version": "0.10.0",
     "scripts": {
+        "prepare": "husky install",
         "build": "tsc",
         "dev": "start bin\\window.bat ts-node index.ts",
         "start": "start bin\\window.bat node dist/index.js"
