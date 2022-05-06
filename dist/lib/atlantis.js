@@ -65,9 +65,8 @@ class Atlantis {
         this.target = await (0, utils_1.run)(() => fs_1.default.readdirSync(dest)[0], 100, v => v);
         fs_1.default.copyFileSync('./assets/README.txt', path_1.default.join(dest, 'README.txt'));
         const master = [this.target, 'README.txt'].map(f => fs_1.default.statSync(path_1.default.join(dest, f)).ino);
-        const watcher = chokidar_1.default.watch(dest, { depth: 0 });
+        const watcher = chokidar_1.default.watch(dest, { depth: 0, alwaysStat: true });
         watcher.on('ready', () => {
-            ;
             ['add', 'addDir'].forEach(name => {
                 watcher.on(name, async (p, stat) => {
                     if (master[0] == stat.ino)
