@@ -125,7 +125,7 @@ class Atlantis {
       throw new Error(`[${e.code}] Failed to read file to decrypt`)
     }
 
-    const dest = path.join(path.dirname(src), 'atlantis')
+    const dest = path.join(path.dirname(src), '.atlantis')
     const input = fs.createReadStream(src)
     const output = unzipper.Extract({ path: dest })
     input.pipe(decrypt(algorithm, key, stat.size)).pipe(output)
